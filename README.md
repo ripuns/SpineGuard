@@ -223,7 +223,7 @@ We welcome contributions! Please follow these steps:
 ## 9. FAQ
 
 **Q: What kind of sensors should I use?**
-**A:** The project is designed for ultrasonic distance sensors (like the HC-SR04) because they are cheap and effective. However, you could adapt it to use flex sensors, pressure sensors, or even a camera.
+**A:** The project is designed for the MPU-6050 (accelerometer + gyroscope) because it is compact, low-cost, and gives accurate orientation data. However, you could adapt it to use other IMUs (like MPU-9250), flex sensors, pressure sensors, or even a camera depending on the level of precision you need.
 
 **Q: How do I collect my own training data?**
 **A:**
