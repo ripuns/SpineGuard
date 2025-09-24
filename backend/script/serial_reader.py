@@ -32,7 +32,7 @@ def main():
     ap.add_argument("--port", default="COM7", help="Serial port (e.g., COM7 or /dev/ttyUSB0)")
     ap.add_argument("--baud", type=int, default=115200, help="Baud rate")
     ap.add_argument("--label", choices=["GOOD", "BAD", "good", "bad"], required=True, help="Posture label")
-    ap.add_argument("--samples", type=int, default=200, help="number of samples to collect")
+    ap.add_argument("--samples", type=int, default=100, help="number of samples to collect")
     args = ap.parse_args()
 
     label = args.label.upper()

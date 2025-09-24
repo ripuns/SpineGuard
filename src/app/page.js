@@ -27,6 +27,7 @@ export default function Home() {
       });
       if (error) throw error;
       setMessage("Logged in successfully ✅");
+      router.push("/dashboard");
     } catch (err) {
       setError(err.message);
     } finally {
