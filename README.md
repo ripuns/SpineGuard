@@ -1,6 +1,6 @@
-# Pentabyte: AI-Powered Posture Correction Assistant
+# SpineGuard: AI-Powered Posture Correction Assistant
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/pentabyte)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/SpineGuard)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-13%2B-black)](https://nextjs.org/)
@@ -31,7 +31,7 @@
 
 ### 1.1. Purpose and Motivation
 
-In an era where many of us spend hours sitting at desks, poor posture has become a major health concern, leading to back pain, neck strain, and other musculoskeletal issues. **Pentabyte** is designed to be a non-intrusive, real-time posture coach. It actively monitors how you sit and provides gentle reminders and data-driven insights to help you maintain a healthy posture throughout the day.
+In an era where many of us spend hours sitting at desks, poor posture has become a major health concern, leading to back pain, neck strain, and other musculoskeletal issues. **SpineGuard** is designed to be a non-intrusive, real-time posture coach. It actively monitors how you sit and provides gentle reminders and data-driven insights to help you maintain a healthy posture throughout the day.
 
 The motivation behind this project is to leverage accessible technology (like Arduino and Raspberry Pi) and the power of machine learning to create a practical, affordable solution for a common health problem.
 
@@ -49,7 +49,7 @@ The motivation behind this project is to leverage accessible technology (like Ar
 
 ## 2. System Architecture
 
-Pentabyte consists of three main components that work together: the hardware for data collection, a Python backend for data processing and machine learning, and a Next.js web application for the user interface.
+SpineGuard consists of three main components that work together: the hardware for data collection, a Python backend for data processing and machine learning, and a Next.js web application for the user interface.
 
 ```
       +-------------------+      +----------------------+      +--------------------+
@@ -107,8 +107,8 @@ Follow these steps to get the project running.
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/pentabyte.git
-cd pentabyte
+git clone https://github.com/your-username/SpineGuard.git
+cd SpineGuard
 ```
 
 ### Step 2: Setup the Hardware
@@ -231,8 +231,8 @@ We welcome contributions! Please follow these steps:
 1.  Run `python script/serial_reader.py`.
 2.  Sit in a "good" posture for a few minutes, then a "bad" posture.
 3.  The script will save the data to a `.csv` file.
-4.  Manually open the CSV and add a `label` column (e.g., 1 for good, 0 for bad).
-5.  Use this labeled data to run `train_model.py`.
+4.  Use this labeled data to run `train_model.py`.
+5.  Now user can successfully get their posture alignment.
 
 ---
 
