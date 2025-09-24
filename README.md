@@ -1,4 +1,4 @@
-# SpineGuard: AI-Powered Posture Correction Assistant
+# SpineGuard: Posture Correction Assistant
 
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/SpineGuard)
 [![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
