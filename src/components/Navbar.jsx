@@ -47,7 +47,7 @@ export default function Navbar() {
         <Link href="/dashboard" className="hover:text-green-400 transition">
           Dashboard
         </Link>
-        <Link href="/posture-monitor" className="hover:text-green-400 transition">
+        <Link href="/posturepred" className="hover:text-green-400 transition">
           Monitor
         </Link>
         <Link href="/analytics" className="hover:text-green-400 transition">
