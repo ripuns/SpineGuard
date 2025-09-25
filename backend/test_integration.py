@@ -63,3 +63,4 @@ def simulate_posture_data():
 
 if __name__ == "__main__":
     simulate_posture_data()
+

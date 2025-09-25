@@ -7,21 +7,25 @@ import csv
 import json
 import queue
 import re
+import sys
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
 # Global variables for monitoring
 monitoring_process = None
 current_posture = "GOOD"
 session_data = {"good": 0, "bad": 0}
 posture_queue = queue.Queue()
+last_monitor_error = None
 
 @app.route("/calibrate/good", methods=["POST"])
 def calibrate_good():
     try:
         # Run serial_reader.py with GOOD label
         subprocess.run(
-            ["python", "/serial_reader.py", "--label", "GOOD"],
+            ["python", "serial_reader.py", "--label", "GOOD"],
             check=True
         )
         return jsonify({"status": "success", "message": "Calibrated GOOD posture"})
@@ -34,7 +38,7 @@ def calibrate_bad():
     try:
         # Run serial_reader.py with BAD label
         subprocess.run(
-            ["python", "/serial_reader.py", "--label", "BAD"],
+            ["python", "serial_reader.py", "--label", "BAD"],
             check=True
         )
         return jsonify({"status": "success", "message": "Calibrated BAD posture"})
@@ -45,7 +49,7 @@ def calibrate_bad():
 def train_model():
     try:
         subprocess.run(
-            ["python", "/train_model.py"],
+            ["python", "train_model.py"],
             check=True
         )
         return jsonify({"status": "success", "message": "Model trained successfully"})
@@ -54,27 +58,34 @@ def train_model():
 
 @app.route("/start-monitoring", methods=["POST"])
 def start_monitoring():
-    global monitoring_process, session_data, posture_queue
+    global monitoring_process, session_data, posture_queue, last_monitor_error
     try:
         # Reset session data
         session_data = {"good": 0, "bad": 0}
+        last_monitor_error = None
         
         # Clear the queue
         while not posture_queue.empty():
             posture_queue.get()
         
         # Start the test.py script (or test_integration.py for testing)
-        script_path = "test.py" if os.path.exists("test.py") else "test_integration.py"
+        python_exec = sys.executable
+        env = os.environ.copy()
+        env["PYTHONIOENCODING"] = "utf-8"
         monitoring_process = subprocess.Popen(
-            ["python", script_path],
+            [python_exec, "-u", "test.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
-            cwd=os.path.dirname(os.path.abspath(__file__))  # Run from backend directory
+            encoding="utf-8",
+            errors="replace",
+            cwd=os.path.dirname(os.path.abspath(__file__)),  # Run from backend directory
+            env=env,
         )
-        
         # Start a thread to monitor the output
         threading.Thread(target=monitor_posture_output, daemon=True).start()
+        threading.Thread(target=monitor_posture_errors, daemon=True).start()
+        threading.Thread(target=monitor_process_lifecycle, daemon=True).start()
         
         return jsonify({"status": "success", "message": "Monitoring started"})
     except Exception as e:
@@ -86,6 +97,10 @@ def stop_monitoring():
     try:
         if monitoring_process:
             monitoring_process.terminate()
+            try:
+                monitoring_process.wait(timeout=2)
+            except Exception:
+                pass
             monitoring_process = None
         return jsonify({"status": "success", "message": "Monitoring stopped"})
     except Exception as e:
@@ -93,7 +108,7 @@ def stop_monitoring():
 
 @app.route("/posture-status", methods=["GET"])
 def get_posture_status():
-    global current_posture, session_data, posture_queue
+    global current_posture, session_data, posture_queue, last_monitor_error
     
     # Check for new posture data from the queue
     try:
@@ -108,11 +123,14 @@ def get_posture_status():
     except queue.Empty:
         pass
     
-    return jsonify({
-        "status": "success", 
+    response = {
+        "status": "success",
         "posture": current_posture,
-        "session_data": session_data
-    })
+        "session_data": session_data,
+    }
+    if last_monitor_error:
+        response["monitor_error"] = last_monitor_error
+    return jsonify(response)
 
 @app.route("/analytics", methods=["GET"])
 def get_analytics():
@@ -190,5 +208,38 @@ def monitor_posture_output():
     except Exception as e:
         print(f"Error monitoring posture: {e}")
 
+def monitor_posture_errors():
+    if not monitoring_process:
+        return
+    try:
+        for line in iter(monitoring_process.stderr.readline, ''):
+            if line.strip():
+                print(f"[test.py STDERR] {line.strip()}")
+    except Exception as e:
+        print(f"Error reading stderr: {e}")
+
+def monitor_process_lifecycle():
+    global last_monitor_error
+    if not monitoring_process:
+        return
+    try:
+        exit_code = monitoring_process.wait()
+        # Drain any remaining output
+        try:
+            remaining_out = monitoring_process.stdout.read() or ""
+            remaining_err = monitoring_process.stderr.read() or ""
+        except Exception:
+            remaining_out, remaining_err = "", ""
+        msg = f"test.py exited with code {exit_code}."
+        if remaining_out.strip():
+            msg += f" stdout: {remaining_out.strip()}"
+        if remaining_err.strip():
+            msg += f" stderr: {remaining_err.strip()}"
+        print(msg)
+        last_monitor_error = msg
+    except Exception as e:
+        print(f"Error waiting for process: {e}")
+
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    # Disable reloader to avoid killing child processes on file change
+    app.run(debug=True, use_reloader=False, port=5000)

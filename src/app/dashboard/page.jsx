@@ -22,12 +22,8 @@ export default function DashboardPage() {
             const res = await fetch(endpoint, { method: "POST" });
             const data = await res.json();
 
-            if (data.status === "success") {
-                if (type === "GOOD") setGoodDone(true);
-                if (type === "BAD") setBadDone(true);
-            } else {
-                console.error(data.message);
-            }
+            if (type === "GOOD") setGoodDone(true);
+            if (type === "BAD") setBadDone(true)
         } catch (e) {
             console.error(e);
         } finally {
@@ -147,8 +143,8 @@ export default function DashboardPage() {
                     <div className={`relative group transition-all duration-500 transform hover:scale-105 ${goodDone ? 'animate-slide-up' : 'animate-slide-up-delay'
                         }`}>
                         <div className={`relative p-8 rounded-3xl backdrop-blur-md border transition-all duration-300 ${goodDone
-                                ? 'bg-green-500/20 border-green-400/50 shadow-green-500/20'
-                                : 'bg-white/5 border-white/10 hover:border-green-400/30 hover:shadow-2xl hover:shadow-green-500/10'
+                            ? 'bg-green-500/20 border-green-400/50 shadow-green-500/20'
+                            : 'bg-white/5 border-white/10 hover:border-green-400/30 hover:shadow-2xl hover:shadow-green-500/10'
                             }`}>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-3">
@@ -174,8 +170,8 @@ export default function DashboardPage() {
                                 onClick={() => handleCalibrate("GOOD")}
                                 disabled={goodDone}
                                 className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 ${goodDone
-                                        ? 'bg-gray-600 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-green-500/25'
+                                    ? 'bg-gray-600 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-green-500/25'
                                     }`}
                             >
                                 {goodDone ? 'Calibrated ✓' : 'Calibrate Good Posture'}
@@ -187,8 +183,8 @@ export default function DashboardPage() {
                     <div className={`relative group transition-all duration-500 transform hover:scale-105 ${badDone ? 'animate-slide-up' : 'animate-slide-up-delay-2'
                         }`}>
                         <div className={`relative p-8 rounded-3xl backdrop-blur-md border transition-all duration-300 ${badDone
-                                ? 'bg-red-500/20 border-red-400/50 shadow-red-500/20'
-                                : 'bg-white/5 border-white/10 hover:border-red-400/30 hover:shadow-2xl hover:shadow-red-500/10'
+                            ? 'bg-red-500/20 border-red-400/50 shadow-red-500/20'
+                            : 'bg-white/5 border-white/10 hover:border-red-400/30 hover:shadow-2xl hover:shadow-red-500/10'
                             }`}>
                             <div className="flex items-center justify-between mb-4">
                                 <div className="flex items-center space-x-3">
@@ -214,8 +210,8 @@ export default function DashboardPage() {
                                 onClick={() => handleCalibrate("BAD")}
                                 disabled={badDone}
                                 className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 ${badDone
-                                        ? 'bg-gray-600 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-red-500/25'
+                                    ? 'bg-gray-600 cursor-not-allowed'
+                                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-red-500/25'
                                     }`}
                             >
                                 {badDone ? 'Calibrated ✓' : 'Calibrate Bad Posture'}
@@ -229,12 +225,8 @@ export default function DashboardPage() {
                     }`}>
                     <button
                         onClick={handleTrain}
-                        disabled={!goodDone || !badDone || trainingDone}
-                        className={`group relative px-12 py-6 rounded-3xl font-bold text-xl transition-all duration-300 transform hover:scale-105 ${
-                            trainingDone
-                                ? 'bg-gray-600 cursor-not-allowed'
-                                : 'bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl hover:shadow-blue-500/25'
-                        }`}
+                        className={`group relative px-12 py-6 rounded-3xl font-bold text-xl transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl hover:shadow-blue-500/25
+                            `}
                     >
                         <span className="relative z-10 flex items-center space-x-3">
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
