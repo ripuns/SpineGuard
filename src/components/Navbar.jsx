@@ -30,10 +30,10 @@ export default function Navbar() {
 
   return (
     <nav
-      className={`fixed top-6 left-1/2 transform -translate-x-1/2 
+      className={`fixed top-5 left-1/2 transform -translate-x-1/2 
       w-[90%] md:w-[70%] lg:w-[60%] 
       bg-[#1e2e43]/100 backdrop-blur-md 
-      text-white flex justify-between items-center px-10 py-4 rounded-3xl shadow-lg 
+      text-white flex justify-between items-center px-10 py-3 rounded-3xl shadow-lg 
       transition-transform duration-300 z-50
       ${visible ? "translate-y-0" : "-translate-y-full"}`}
     >
@@ -47,8 +47,8 @@ export default function Navbar() {
         <Link href="/dashboard" className="hover:text-green-400 transition">
           Dashboard
         </Link>
-        <Link href="/history" className="hover:text-green-400 transition">
-          History
+        <Link href="/posture-monitor" className="hover:text-green-400 transition">
+          Monitor
         </Link>
         <Link href="/analytics" className="hover:text-green-400 transition">
           Analytics
