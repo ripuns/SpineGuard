@@ -1,240 +1,168 @@
-# SpineGuard: Posture Correction Assistant
+# SpineGuard — Real-Time Posture Intelligence System
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-username/SpineGuard)
-[![Python Version](https://img.shields.io/badge/python-3.9%2B-blue)](https://www.python.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-13%2B-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15.5-black?logo=next.js)](https://nextjs.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python)](https://www.python.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-**A smart system that monitors your posture in real-time and provides feedback to help you build healthier habits.**
-
----
-
-### TL;DR
-
-- **What it is:** A hardware and software project to track and analyze your sitting posture using an Arduino and a machine learning model.
-- **What it does:** Reads sensor data, classifies your posture (good/bad), and displays real-time feedback on a web dashboard.
-- **How to run it:**
-  ```bash
-  # Terminal 1: Start the web server
-  npm install
-  npm run dev
-  ```
-  ```bash
-  # Terminal 2: Start the posture detection script
-  pip install -r requirements.txt
-  python script/predict_live.py
-  ```
+SpineGuard is an end-to-end IoT and software engineering platform that monitors sitting posture in real time using 6-DOF inertial measurement unit (IMU) telemetry, applies biomechanical feature extraction and machine learning classification, and delivers instantaneous multimodal ergonomic feedback.
 
 ---
 
-## 1. Project Overview
+## 1. System Overview & Core Principle
 
-### 1.1. Purpose and Motivation
+SpineGuard is built on the core architectural foundation:
 
-In an era where many of us spend hours sitting at desks, poor posture has become a major health concern, leading to back pain, neck strain, and other musculoskeletal issues. **SpineGuard** is designed to be a non-intrusive, real-time posture coach. It actively monitors how you sit and provides gentle reminders and data-driven insights to help you maintain a healthy posture throughout the day.
+> **Hardware is a Data Source. The System is the Product. Simulation is the Access Mechanism.**
 
-The motivation behind this project is to leverage accessible technology (like Arduino and Raspberry Pi) and the power of machine learning to create a practical, affordable solution for a common health problem.
+The application supports two interchangeable data sources:
+1. **Live Hardware Mode**: Direct serial ingestion of 6-DOF IMU data (`ax, ay, az, gx, gy, gz`) from an MPU-6050 accelerometer/gyroscope on Arduino/ESP32 via USB serial or BLE.
+2. **Simulation Mode**: A physiological kinematic simulation engine generating time-series biomechanical movement profiles with Gaussian sensor noise, breathing micro-oscillations, and realistic posture transitions.
 
-### 1.2. Target Users
-
-- **Students and Professionals:** Anyone who spends long hours sitting at a computer.
-- **Health-conscious Individuals:** People looking to improve their physical well-being and build better habits.
-- **Hobbyists and Makers:** Electronics and software enthusiasts interested in a hands-on project that blends hardware, software, and AI.
-
-### 1.3. Use Cases
-
-- **Real-time Posture Correction:** Get immediate feedback on your posture via the web dashboard.
-- **Habit Building:** Track your posture trends over time to see your improvement.
-- **Ergonomic Assessment:** Use the data to help you adjust your chair, desk, and monitor setup for better ergonomics.
-
-## 2. System Architecture
-
-SpineGuard consists of three main components that work together: the hardware for data collection, a Python backend for data processing and machine learning, and a Next.js web application for the user interface.
+Both sources pass through the exact same downstream feature extraction, classification, dynamic filtering, hysteresis, alert engine, and analytics pipeline.
 
 ```
-      +-------------------+      +----------------------+      +--------------------+
-      |  Arduino Nano     |      |  Python Backend      |      |  Next.js Frontend  |
-      | (with Sensors)    |      | (on your computer)   |      | (Web Dashboard)    |
-      +-------------------+      +----------------------+      +--------------------+
-               |                          |                             |
-               | (Serial Data)            |                             |
-               +------------------------> | (Reads Serial Port)         |
-                                          |                             |
-                                          | 1. Reads & parses data      |
-                                          | 2. Feeds data to ML model   |
-                                          | 3. Model predicts posture   |
-                                          | (good/bad)                  |
-                                          |                             |
-                                          | (WebSocket)                 |
-                                          +---------------------------> | (Displays posture)
-                                                                        |
+                 DATA SOURCE
+                /           \
+               /             \
+       REAL HARDWARE       SIMULATOR
+            │                  │
+            └────────┬─────────┘
+                     ▼
+              SAME DATA PIPELINE
+                     │
+                     ▼
+              DATA PROCESSING
+                     │
+                     ▼
+             POSTURE ANALYSIS
+                     │
+                     ▼
+                ALERT ENGINE
+                     │
+                     ▼
+                  BACKEND
+                     │
+              ┌──────┴──────┐
+              ▼             ▼
+         DASHBOARD       ANALYTICS
 ```
 
-### 2.1. Components
+---
 
-- **Hardware (`arduino.ino`):**
-  - An Arduino (or similar microcontroller) is equipped with sensors (e.g., ultrasonic distance sensors, flex sensors) placed on a chair.
-  - It continuously measures values that correlate with posture (e.g., distance from your back to the chair, spinal curve).
-  - This data is sent to the host computer over a USB serial connection.
+## 2. Interactive Scenarios
 
-- **Python Scripts (`script/`):**
-  - `serial_reader.py`: A script to connect to the Arduino's serial port, read the incoming data, and save it (useful for collecting a training dataset).
-  - `train_model.py`: This script takes a labeled dataset of posture data (e.g., `posture_data.csv`) and trains a machine learning model (e.g., a simple neural network or a classical model like SVM) to classify posture as "good" or "bad". It saves the trained model to a file (e.g., `posture_model.h5`).
-  - `predict_live.py`: The main backend script. It reads live data from the Arduino, uses the pre-trained model to predict the current posture in real-time, and sends the prediction to the web dashboard via WebSockets.
-  - `posture_graph.py`: A utility to visualize the collected posture data.
+SpineGuard includes 6 realistic physiological kinematic scenarios for review and testing without physical hardware:
 
-- **Web Dashboard (`src/app/`):**
-  - A Next.js application that serves as the user-facing dashboard.
-  - It connects to the Python backend via WebSockets to receive live posture status.
-  - It displays the current posture (e.g., with a changing icon or color), historical data, and tips for improvement.
+- **Healthy Sitting**: Stable optimal posture (78°–82° spinal angle) with natural micro-movements.
+- **Gradual Slouch**: Realistic progressive spinal degradation (79° down to 60° over time).
+- **Severe Slouch**: Rapid abrupt slouch (54°–60°) with continuous alert triggering.
+- **Forward Lean**: Anterior spinal tilt and screen hunching with compensatory cervical strain.
+- **Postural Recovery**: Ergonomic self-correction and thoracic repositioning (61° back up to 80°).
+- **Long Session**: Comprehensive 60-step multi-phase timeline displaying healthy work, gradual fatigue, warning thresholds, alert dispatch, and posture correction.
 
-## 3. System Requirements
+---
 
-- **Operating System:** Windows, macOS, or Linux.
-- **Python:** Version 3.9 or newer.
-- **Node.js:** Version 18.0 or newer.
-- **Hardware:**
-  - Arduino or a compatible microcontroller.
-  - Necessary sensors (e.g., 3x HC-SR04 ultrasonic sensors).
-  - Breadboard and jumper wires.
-- **Software:**
-  - Arduino IDE or PlatformIO to upload the `.ino` sketch.
+## 3. System Architecture & Tech Stack
 
-## 4. Installation and Setup
+### Web Application (`src/`)
+- **Framework**: Next.js 15 (App Router, Turbopack) & React 19
+- **Styling**: Tailwind CSS v4 with glassmorphic dark UI
+- **Visualization**: 10-node dynamic SVG biomechanical spine curvature model
+- **Audio Feedback**: Web Audio API oscillator synthesis (warning tones, poor posture pulses, recovery chimes)
+- **State Management**: Reactive data source pub/sub manager (`spineGuardData`)
 
-Follow these steps to get the project running.
+### Python Backend & Microcontroller Layer (`backend/`)
+- **Backend API**: Python Flask REST API (`backend/app.py`) with Flask-CORS
+- **Firmware**: Arduino C++ sketch (`backend/arduino.ino`) for MPU-6050 over I2C at 400kHz
+- **Machine Learning**: Scikit-learn `RandomForestClassifier` pipeline with derived features (`accel_mag`, `gyro_mag`, `tilt_angle`, `spine_tilt`, `pitch`, `roll`)
+- **Alert Dispatch**: Windows beep + Pushbullet mobile push notifications + onboard piezobuzzer
 
-### Step 1: Clone the Repository
+---
 
+## 4. Hardware Wiring & Pinout (MPU-6050 to Arduino Nano)
+
+| MPU-6050 Pin | Arduino Nano Pin | Function |
+| :--- | :--- | :--- |
+| **VCC** | **5V / 3.3V** | Power Supply |
+| **GND** | **GND** | Ground |
+| **SCL** | **A5 (SCL)** | I2C Clock Line (400 kHz) |
+| **SDA** | **A4 (SDA)** | I2C Data Line |
+| **INT** | **D2 (Optional)** | Motion Interrupt |
+| **Buzzer (+)** | **D8** | Piezoelectric Acoustic Alert |
+
+---
+
+## 5. Getting Started & Installation
+
+### Option A: Running the Web Application (Interactive Studio & Simulation)
 ```bash
-git clone https://github.com/your-username/SpineGuard.git
-cd SpineGuard
-```
+# 1. Install dependencies
+npm install
 
-### Step 2: Setup the Hardware
-
-1.  Assemble the Arduino and sensors on your chair. A common setup involves placing one sensor at the top of the chair, one in the middle (lumbar region), and one on the seat.
-2.  Connect the Arduino to your computer via USB.
-3.  Open `script/arduino.ino` in the Arduino IDE.
-4.  Select the correct board and port.
-5.  Upload the sketch to the Arduino.
-
-### Step 3: Setup the Python Backend
-
-1.  **Create a virtual environment:**
-    ```bash
-    python -m venv venv
-    source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-    ```
-
-2.  **Install Python dependencies:**
-    A `requirements.txt` file is recommended. If it doesn't exist, you'll need to install the libraries manually.
-    ```bash
-    # Create this file if it doesn't exist
-    # requirements.txt
-    # numpy
-    # pandas
-    # pyserial
-    # scikit-learn
-    # tensorflow
-    # websockets
-
-    pip install -r requirements.txt
-    ```
-
-### Step 4: Setup the Frontend
-
-1.  **Install Node.js dependencies:**
-    ```bash
-    npm install
-    ```
-
-## 5. Usage
-
-To run the application, you need to start both the backend and frontend processes.
-
-### Terminal 1: Start the Frontend
-
-```bash
+# 2. Start Next.js development server
 npm run dev
+
+# 3. Open browser at http://localhost:3000
 ```
 
-This will start the Next.js development server, typically at `http://localhost:3000`. Open this URL in your browser.
-
-### Terminal 2: Start the Backend
-
+### Option B: Running Full-Stack with Python Backend & Hardware
 ```bash
-python script/predict_live.py
+# Terminal 1: Start Next.js frontend
+npm run dev
+
+# Terminal 2: Start Python Flask backend
+cd backend
+pip install flask flask-cors pyserial scikit-learn pandas numpy joblib
+python app.py
 ```
 
-This script will automatically try to connect to the Arduino, start classifying your posture, and send data to the web dashboard. Sit in your chair, and you should see the dashboard update in real-time.
+---
 
-## 6. Code Structure
+## 6. Repository File Structure
 
 ```
 .
-├── .gitignore
-├── jsconfig.json
-├── next.config.mjs
+├── backend/                  # Python Flask server, ML models, and Arduino firmware
+│   ├── app.py                # REST API endpoints & monitoring daemon
+│   ├── arduino.ino           # MPU-6050 I2C sensor driver for Arduino
+│   ├── predict_live.py       # Live serial predictor
+│   ├── serial_reader.py      # Labeled calibration data collector
+│   ├── test.py               # Live hardware pipeline with pushbullet alerts
+│   ├── test_integration.py   # Subprocess integration test
+│   ├── train_model.py        # Random Forest model trainer
+│   └── README.md             # Backend architecture documentation
+├── public/                   # Static assets and SVG icons
+├── src/                      # Next.js web application
+│   ├── app/                  # App Router pages (/dashboard, /posturepred, /analytics, /settings)
+│   │   ├── analytics/        # Session analytics & trend curves
+│   │   ├── dashboard/        # Main posture intelligence console
+│   │   ├── posturepred/      # Live monitor & interactive studio
+│   │   ├── settings/         # System configuration & audio testing
+│   │   └── page.js           # Public landing page & overview
+│   ├── components/           # UI presentation & visualization components
+│   │   ├── CalibrationModal.jsx        # 3-step guided reference calibration
+│   │   ├── DataSourceSelector.jsx      # Hardware vs Simulation switcher
+│   │   ├── HardwareArchitectureViewer.jsx # 6-layer hardware schematic
+│   │   ├── HardwareVideoDemo.jsx       # Test protocol showcase container
+│   │   ├── RawTelemetryInspector.jsx   # 6-DOF developer table & JSON inspector
+│   │   ├── ScenarioRunner.jsx          # Interactive scenario controller
+│   │   ├── SpineVisualizer.jsx         # Dynamic SVG spine curvature model
+│   │   └── SystemStatusWidget.jsx      # System observability metrics
+│   └── lib/                  # Core domain models & data pipeline
+│       ├── dataSource.js     # Unified SensorDataSource abstraction
+│       ├── pipeline.js       # Mathematical feature extraction & classifier
+│       ├── simulation.js     # Kinematic simulation engine
+│       ├── soundAlerts.js    # Web Audio API alert synthesizer
+│       ├── supabaseClient.js # Supabase client with build-time fallback
+│       └── types.js          # Constants, enums, and scenario definitions
 ├── package.json
-├── postcss.config.mjs
-├── README.md
-├── script/
-│   ├── arduino.ino         # Arduino code for sensor reading
-│   ├── posture_graph.py    # Utility for visualizing data
-│   ├── predict_live.py     # Main script for live posture prediction
-│   ├── serial_reader.py    # Script to collect training data
-│   ├── sit.py              # (Likely a helper or test script)
-│   ├── test.py             # (General purpose test script)
-│   └── train_model.py      # Script to train the ML model
-└── src/
-    └── app/
-        ├── globals.css     # Global styles for the web app
-        ├── layout.js       # Next.js main layout
-        └── page.js         # The main page of the web dashboard
+└── README.md
 ```
 
-## 7. Troubleshooting
-
-- **Error: `serial.serialutil.SerialException: could not open port 'COM3'`**
-  - **Cause:** The Python script cannot find the Arduino.
-  - **Fix:**
-    1.  Make sure the Arduino is plugged in.
-    2.  Check the Arduino IDE to see which port it's connected to (e.g., `COM4`, `/dev/ttyUSB0`).
-    3.  Update the port name in `predict_live.py` and `serial_reader.py`.
-
-- **Web dashboard shows "Disconnected"**
-  - **Cause:** The frontend cannot connect to the backend's WebSocket server.
-  - **Fix:**
-    1.  Ensure `predict_live.py` is running without errors.
-    2.  Check that the WebSocket URL in `src/app/page.js` matches the one in the Python script (e.g., `ws://localhost:8765`).
-    3.  Check your firewall settings to ensure it's not blocking the connection.
-
-## 8. Contribution Guidelines
-
-We welcome contributions! Please follow these steps:
-
-1.  **Fork the repository.**
-2.  **Create a new branch:** `git checkout -b feature/your-feature-name`.
-3.  **Make your changes.** Adhere to the existing code style.
-4.  **Submit a pull request** with a clear description of your changes.
-
 ---
 
-## 9. FAQ
-
-**Q: What kind of sensors should I use?**
-**A:** The project is designed for the MPU-6050 (accelerometer + gyroscope) because it is compact, low-cost, and gives accurate orientation data. However, you could adapt it to use other IMUs (like MPU-9250), flex sensors, pressure sensors, or even a camera depending on the level of precision you need.
-
-**Q: How do I collect my own training data?**
-**A:**
-1.  Run `python script/serial_reader.py`.
-2.  Sit in a "good" posture for a few minutes, then a "bad" posture.
-3.  The script will save the data to a `.csv` file.
-4.  Use this labeled data to run `train_model.py`.
-5.  Now user can successfully get their posture alignment.
-
----
-
-## 10. Contact
-
-For questions or support, please open an issue on GitHub.
+## 7. Quality Standards & Ethical Engineering
+- **Zero Fabricated Results**: Model accuracy, precision, recall, and scientific outcomes are never simulated or fabricated. All displayed metrics represent real computed angles and live sensor readings.
+- **Data Provenance**: Simulation telemetry is clearly marked with active source badges and never misrepresented as physical hardware readings.
+- **Continuous Documentation**: Every substantive directory maintains an updated `README.md` detailing What, Why, How, and Overall Role.
