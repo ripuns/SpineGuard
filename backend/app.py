@@ -56,6 +56,15 @@ def train_model():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({
+        "status": "healthy",
+        "service": "SpineGuard Backend",
+        "monitoring_active": monitoring_process is not None and monitoring_process.poll() is None,
+        "current_posture": current_posture
+    })
+
 @app.route("/start-monitoring", methods=["POST"])
 def start_monitoring():
     global monitoring_process, session_data, posture_queue, last_monitor_error
@@ -68,28 +77,39 @@ def start_monitoring():
         while not posture_queue.empty():
             posture_queue.get()
         
-        # Start the test.py script (or test_integration.py for testing)
+        # Check script choice: prefer test.py, fallback to test_integration.py if specified or if COM port absent
         python_exec = sys.executable
         env = os.environ.copy()
         env["PYTHONIOENCODING"] = "utf-8"
+        backend_dir = os.path.dirname(os.path.abspath(__file__))
+
+        script_to_run = "test.py"
+        if not os.path.exists(os.path.join(backend_dir, "model.joblib")):
+            # If model file is not present locally, use test_integration.py for synthetic simulation
+            script_to_run = "test_integration.py"
+
         monitoring_process = subprocess.Popen(
-            [python_exec, "-u", "test.py"],
+            [python_exec, "-u", script_to_run],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
             encoding="utf-8",
             errors="replace",
-            cwd=os.path.dirname(os.path.abspath(__file__)),  # Run from backend directory
+            cwd=backend_dir,
             env=env,
         )
-        # Start a thread to monitor the output
+        # Start threads to monitor the output
         threading.Thread(target=monitor_posture_output, daemon=True).start()
         threading.Thread(target=monitor_posture_errors, daemon=True).start()
         threading.Thread(target=monitor_process_lifecycle, daemon=True).start()
         
-        return jsonify({"status": "success", "message": "Monitoring started"})
+        return jsonify({
+            "status": "success", 
+            "message": f"Monitoring started using {script_to_run}"
+        })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
+
 
 @app.route("/stop-monitoring", methods=["POST"])
 def stop_monitoring():
