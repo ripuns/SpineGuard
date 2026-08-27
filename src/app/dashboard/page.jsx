@@ -1,255 +1,302 @@
 "use client";
-import React from "react";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { spineGuardData } from "@/lib/dataSource";
+import { DataSourceMode, PostureState } from "@/lib/types";
+import SpineVisualizer from "@/components/SpineVisualizer";
+import DataSourceSelector from "@/components/DataSourceSelector";
+import CalibrationModal from "@/components/CalibrationModal";
 
 export default function DashboardPage() {
-    const [loading, setLoading] = useState(false);
-    const [loadingType, setLoadingType] = useState(""); // "GOOD" | "BAD" | "TRAIN"
-    const [goodDone, setGoodDone] = useState(false);
-    const [badDone, setBadDone] = useState(false);
-    const [trainingDone, setTrainingDone] = useState(false);
+  const [telemetry, setTelemetry] = useState(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [dataSource, setDataSource] = useState(DataSourceMode.SIMULATION);
+  const [showCalibrationModal, setShowCalibrationModal] = useState(false);
+  const [baselineAngle, setBaselineAngle] = useState(78.5);
 
-    const handleCalibrate = async (type) => {
-        setLoading(true);
-        setLoadingType(type);
+  useEffect(() => {
+    // Subscribe to unified data stream
+    const unsubscribe = spineGuardData.subscribe((payload) => {
+      setTelemetry(payload);
+      if (payload.system) {
+        setIsStreaming(payload.system.isStreaming);
+      }
+    });
 
-        const endpoint =
-            type === "GOOD"
-                ? "http://localhost:5000/calibrate/good"
-                : "http://localhost:5000/calibrate/bad";
+    // Auto-start stream
+    spineGuardData.start();
+    setIsStreaming(true);
 
-        try {
-            const res = await fetch(endpoint, { method: "POST" });
-            const data = await res.json();
-
-            if (type === "GOOD") setGoodDone(true);
-            if (type === "BAD") setBadDone(true)
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-            setLoadingType("");
-        }
+    return () => {
+      unsubscribe();
     };
+  }, []);
 
-    const handleTrain = async () => {
-        setLoading(true);
-        setLoadingType("TRAIN");
-
-        try {
-            const res = await fetch("http://localhost:5000/train", { method: "POST" });
-            const data = await res.json();
-
-            if (data.status === "success") {
-                setTrainingDone(true);
-                // Redirect to posture monitor page after training
-                setTimeout(() => {
-                    window.location.href = '/posturepred';
-                }, 2000);
-            } else {
-                console.error(data.message);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoading(false);
-            setLoadingType("");
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-gradient-to-br from-[#021229] via-[#0a1a2f] to-[#1a2a3f] text-white">
-                {/* Animated background pattern */}
-                <div className="absolute inset-0 opacity-50" style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-                }}></div>
-
-                {/* Animated spine icon */}
-                <div className="relative z-10 flex flex-col items-center space-y-8">
-                    <div className="relative">
-                        <img
-                            src="/spine.svg"
-                            alt="Spine Background"
-                            className="w-32 h-32 animate-spin-slow opacity-80"
-                        />
-                        <div className="absolute inset-0 w-32 h-32 border-4 border-transparent border-t-green-400 border-r-blue-400 rounded-full animate-spin"></div>
-                    </div>
-
-                    {/* Loading text with animation */}
-                    <div className="text-center space-y-2">
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">
-                            {loadingType === "GOOD" && "Calibrating Good Posture"}
-                            {loadingType === "BAD" && "Calibrating Bad Posture"}
-                            {loadingType === "TRAIN" && "Training AI Model"}
-                        </h2>
-                        <p className="text-gray-300 text-lg">
-                            {loadingType === "GOOD" && "Please sit with perfect posture..."}
-                            {loadingType === "BAD" && "Please sit with poor posture..."}
-                            {loadingType === "TRAIN" && "Teaching the AI to recognize patterns..."}
-                        </p>
-
-                        {/* Progress dots */}
-                        <div className="flex justify-center space-x-2 mt-4">
-                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-                            <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+  const handleToggleStream = () => {
+    if (isStreaming) {
+      spineGuardData.stop();
+      setIsStreaming(false);
+    } else {
+      spineGuardData.start();
+      setIsStreaming(true);
     }
-    // const handleCalibrateGood = async () => {
-    //     await fetch("http://localhost:5000/calibrate/good", { method: "POST" });
-    //     alert("Calibrating GOOD posture...");
-    // };
+  };
 
-    // const handleCalibrateBad = async () => {
-    //     await fetch("http://localhost:5000/calibrate/bad", { method: "POST" });
-    //     alert("Calibrating BAD posture...");
-    // };
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-[#021229] via-[#0a1a2f] to-[#1a2a3f] text-white relative overflow-hidden">
-            {/* Animated background elements */}
-            <div className="absolute inset-0 opacity-30" style={{
-                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Ccircle cx='30' cy='30' r='1.5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-            }}></div>
+  const handleModeChange = (mode) => {
+    setDataSource(mode);
+    spineGuardData.setMode(mode);
+  };
 
-            {/* Floating spine icon */}
-            <div className="absolute  opacity-10">
-                <img
-                    src="/spine.svg"
-                    alt="Spine Background"
-                    className="w-full h-full animate-float"
-                />
+  const handleSaveBaseline = (angle) => {
+    setBaselineAngle(angle);
+    spineGuardData.setCalibration(angle);
+  };
+
+  const processed = telemetry?.processed || {
+    features: { tiltAngle: 78.5, spineTilt: 2.1, roll: 0.5 },
+    classification: { state: PostureState.GOOD, postureScore: 94, confidence: 96 },
+    stats: {
+      totalReadings: 1,
+      goodCount: 1,
+      badCount: 0,
+      warningCount: 0,
+      goodPosturePercentage: 100,
+      goodStreak: 1,
+      longestGoodStreak: 1,
+    },
+  };
+
+  const formatUptime = (secs) => {
+    const mins = Math.floor((secs || 0) / 60);
+    const s = (secs || 0) % 60;
+    return `${mins.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#001125] via-[#0a1a2f] to-[#10243d] text-white pt-24 pb-16 px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Welcome & Action Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+                SpineGuard Intelligence Console
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              Posture Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-gray-300 mt-0.5">
+              Live biomechanical alignment monitoring and continuous habit tracking.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowCalibrationModal(true)}
+              className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 border border-white/20 text-white text-xs font-semibold backdrop-blur-md transition flex items-center gap-2"
+            >
+              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              <span>Guided Calibration</span>
+            </button>
+
+            <Link
+              href="/posturepred"
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-xs font-bold shadow-lg shadow-emerald-500/20 transition flex items-center gap-2"
+            >
+              <span>Interactive Studio</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+
+        {/* Data Source Selector */}
+        <DataSourceSelector
+          currentMode={dataSource}
+          onModeChange={handleModeChange}
+          hardwareConnected={telemetry?.system?.hardwareStatus === "CONNECTED"}
+          hardwareError={telemetry?.error}
+        />
+
+        {/* Main Intelligence Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column: Visualizer & Live Angle Gauges (5 cols) */}
+          <div className="lg:col-span-5 space-y-4">
+            <SpineVisualizer
+              spinalAngle={processed.features.tiltAngle}
+              spineTilt={processed.features.spineTilt}
+              roll={processed.features.roll}
+              state={processed.classification.state}
+            />
+
+            {/* Posture Score Highlight Card */}
+            <div className="p-6 rounded-3xl bg-[#0c1829] border border-white/10 backdrop-blur-md shadow-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase font-semibold text-gray-400">Overall Posture Score</p>
+                <div className="flex items-baseline gap-2 mt-1">
+                  <span className="text-4xl font-extrabold text-white font-mono">
+                    {processed.classification.postureScore}%
+                  </span>
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                    processed.classification.state === PostureState.GOOD
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : processed.classification.state === PostureState.WARNING
+                      ? 'bg-amber-500/20 text-amber-400'
+                      : 'bg-red-500/20 text-red-400'
+                  }`}>
+                    {processed.classification.state}
+                  </span>
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Confidence: <strong className="text-cyan-400 font-mono">{processed.classification.confidence}%</strong> (6-DOF inertial filter)
+                </p>
+              </div>
+
+              <button
+                onClick={handleToggleStream}
+                className={`p-4 rounded-2xl transition shadow-lg ${
+                  isStreaming ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30'
+                }`}
+                title={isStreaming ? "Pause Monitoring" : "Start Monitoring"}
+              >
+                {isStreaming ? (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Key Biometrics & Telemetry (7 cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Primary 6 Metrics Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Good Posture %</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-emerald-400 font-mono mt-1">
+                  {processed.stats.goodPosturePercentage}%
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {processed.stats.goodCount} of {processed.stats.totalReadings} samples
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Spinal Angle</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-white font-mono mt-1">
+                  {processed.features.tiltAngle}°
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Datum: {baselineAngle.toFixed(1)}°
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Spine Tilt</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-cyan-300 font-mono mt-1">
+                  {processed.features.spineTilt}°
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Roll: {processed.features.roll}°
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Active Session</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-purple-400 font-mono mt-1">
+                  {formatUptime(telemetry?.system?.uptimeSeconds || 0)}
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">Continuous tracking</p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Warning Count</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-amber-400 font-mono mt-1">
+                  {processed.stats.warningCount + processed.stats.badCount}
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  {processed.stats.badCount} bad / {processed.stats.warningCount} warn
+                </p>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                <p className="text-xs uppercase font-semibold text-gray-400">Longest Streak</p>
+                <p className="text-2xl sm:text-3xl font-extrabold text-teal-300 font-mono mt-1">
+                  {processed.stats.longestGoodStreak}s
+                </p>
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Current: {processed.stats.goodStreak}s
+                </p>
+              </div>
             </div>
 
-            {/* Main content */}
-            <main className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 py-20">
-                {/* Welcome section */}
-                <div className="text-center mb-12 space-y-4">
-                    <h1 className="text-5xl md:text-6xl font-bold bg-white bg-clip-text text-transparent animate-fade-in">
-                        Hey Ripun,
-                    </h1>
-                    <p className="text-xl md:text-2xl text-gray-300 font-light animate-fade-in-delay">
-                        let's sit straight today!
-                    </p>
-                </div>
+            {/* Live Real-Time Posture Telemetry Progress */}
+            <div className="p-6 rounded-3xl bg-[#0c1829] border border-white/10 shadow-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  Live Spinal Angle Gauge
+                </h4>
+                <span className="text-xs font-mono text-gray-300">
+                  {processed.features.tiltAngle}° / 90.0°
+                </span>
+              </div>
+              <div className="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    processed.classification.state === PostureState.GOOD
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-400'
+                      : processed.classification.state === PostureState.WARNING
+                      ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
+                      : 'bg-gradient-to-r from-red-600 to-rose-500'
+                  }`}
+                  style={{ width: `${Math.min(100, Math.max(0, (processed.features.tiltAngle / 90) * 100))}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] text-gray-400 font-mono mt-2">
+                <span>50° (Severe Slouch)</span>
+                <span>65° (Warning)</span>
+                <span>78.5° (Ideal Datum)</span>
+                <span>90° (Upright)</span>
+              </div>
+            </div>
 
-                {/* Status cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 w-full max-w-4xl">
-                    {/* Good Posture Card */}
-                    <div className={`relative group transition-all duration-500 transform hover:scale-105 ${goodDone ? 'animate-slide-up' : 'animate-slide-up-delay'
-                        }`}>
-                        <div className={`relative p-8 rounded-3xl backdrop-blur-md border transition-all duration-300 ${goodDone
-                            ? 'bg-green-500/20 border-green-400/50 shadow-green-500/20'
-                            : 'bg-white/5 border-white/10 hover:border-green-400/30 hover:shadow-2xl hover:shadow-green-500/10'
-                            }`}>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${goodDone ? 'bg-green-500' : 'bg-green-500/20'
-                                        }`}>
-                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="text-xl font-semibold">Good Posture</h3>
-                                </div>
-                                {goodDone && (
-                                    <div className="text-green-400 text-2xl">✓</div>
-                                )}
-                            </div>
-                            <p className="text-gray-300 mb-6">
-                                {goodDone
-                                    ? 'Perfect! Your good posture has been calibrated.'
-                                    : 'Calibrate your ideal sitting position for the AI to learn.'
-                                }
-                            </p>
-                            <button
-                                onClick={() => handleCalibrate("GOOD")}
-                                disabled={goodDone}
-                                className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 ${goodDone
-                                    ? 'bg-gray-600 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 shadow-lg hover:shadow-green-500/25'
-                                    }`}
-                            >
-                                {goodDone ? 'Calibrated ✓' : 'Calibrate Good Posture'}
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Bad Posture Card */}
-                    <div className={`relative group transition-all duration-500 transform hover:scale-105 ${badDone ? 'animate-slide-up' : 'animate-slide-up-delay-2'
-                        }`}>
-                        <div className={`relative p-8 rounded-3xl backdrop-blur-md border transition-all duration-300 ${badDone
-                            ? 'bg-red-500/20 border-red-400/50 shadow-red-500/20'
-                            : 'bg-white/5 border-white/10 hover:border-red-400/30 hover:shadow-2xl hover:shadow-red-500/10'
-                            }`}>
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center space-x-3">
-                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${badDone ? 'bg-red-500' : 'bg-red-500/20'
-                                        }`}>
-                                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="text-xl font-semibold">Bad Posture</h3>
-                                </div>
-                                {badDone && (
-                                    <div className="text-red-400 text-2xl">✓</div>
-                                )}
-                            </div>
-                            <p className="text-gray-300 mb-6">
-                                {badDone
-                                    ? 'Done! Your poor posture has been recorded.'
-                                    : 'Show the AI what bad posture looks like for comparison.'
-                                }
-                            </p>
-                            <button
-                                onClick={() => handleCalibrate("BAD")}
-                                disabled={badDone}
-                                className={`w-full py-4 px-6 rounded-2xl font-semibold transition-all duration-300 transform hover:scale-105 ${badDone
-                                    ? 'bg-gray-600 cursor-not-allowed'
-                                    : 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-lg hover:shadow-red-500/25'
-                                    }`}
-                            >
-                                {badDone ? 'Calibrated ✓' : 'Calibrate Bad Posture'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Start Training Button */}
-                <div className={`transition-all duration-500 transform hover:scale-105 ${goodDone && badDone ? 'animate-slide-up-delay-3' : 'opacity-50'
-                    }`}>
-                    <button
-                        onClick={handleTrain}
-                        className={`group relative px-12 py-6 rounded-3xl font-bold text-xl transition-all duration-300 transform hover:scale-105 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 shadow-2xl hover:shadow-blue-500/25
-                            `}
-                    >
-                        <span className="relative z-10 flex items-center space-x-3">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span>{trainingDone ? 'Training Complete ✓' : 'Start AI Training'}</span>
-                        </span>
-                        <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-                    </button>
-                </div>
-
-                {/* Progress indicator */}
-                <div className="mt-8 flex items-center space-x-4 text-sm text-gray-400">
-                    <div className={`w-3 h-3 rounded-full ${goodDone ? 'bg-green-400' : 'bg-gray-600'}`}></div>
-                    <span>Good Posture</span>
-                    <div className="w-8 h-px bg-gray-600"></div>
-                    <div className={`w-3 h-3 rounded-full ${badDone ? 'bg-red-400' : 'bg-gray-600'}`}></div>
-                    <span>Bad Posture</span>
-                    <div className="w-8 h-px bg-gray-600"></div>
-                    <div className={`w-3 h-3 rounded-full ${goodDone && badDone ? 'bg-blue-400' : 'bg-gray-600'}`}></div>
-                    <span>Ready to Train</span>
-                </div>
-            </main>
+            {/* Quick Link Banner to Studio & Analytics */}
+            <div className="p-6 rounded-3xl bg-gradient-to-r from-indigo-900/40 via-purple-900/20 to-blue-900/40 border border-indigo-500/20 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div>
+                <h4 className="text-base font-bold text-white">Looking for the Interactive Demo?</h4>
+                <p className="text-xs text-gray-300 mt-1">
+                  Run edge-case scenarios (Gradual Slouch, Severe Slouch, Forward Lean, Recovery) in the Interactive Studio.
+                </p>
+              </div>
+              <Link
+                href="/posturepred"
+                className="px-5 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg transition whitespace-nowrap"
+              >
+                Launch Studio →
+              </Link>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Guided Calibration Modal */}
+      <CalibrationModal
+        isOpen={showCalibrationModal}
+        onClose={() => setShowCalibrationModal(false)}
+        onSaveBaseline={handleSaveBaseline}
+        currentSpinalAngle={processed.features.tiltAngle}
+      />
+    </div>
+  );
 }
